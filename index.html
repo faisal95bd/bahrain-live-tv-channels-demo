@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bahrain Live TV Channels Demo</title>
+  <title>Bahrain Live TV & Radio - Demo</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -17,24 +17,36 @@
       font-size: 16px;
       cursor: pointer;
     }
+
+    #video,
+    #audio {
+      margin-top: 20px;
+      width: 800px;
+    }
   </style>
 </head>
 
 <body>
 
-  <h1>📺 Bahrain Live TV Channels Demo</h1>
+  <h1>📺 Bahrain Live TV & 📻 Radio - Demo</h1>
 
+  <!-- Channel Switch Buttons -->
   <div>
+    <h2>TV Channels</h2>
     <button onclick="switchChannel('bahraintvmain')">Bahrain TV Main</button>
     <button onclick="switchChannel('bahraininternational')">Bahrain International</button>
     <button onclick="switchChannel('bahrainquran')">Quran Channel</button>
     <button onclick="switchChannel('sportsone')">Sports One</button>
     <button onclick="switchChannel('bahrainsportstwo')">Sports Two</button>
+
+    <h2>Radio Channels</h2>
+    <button onclick="switchChannel('radio965')">96.5 FM</button>
+    <button onclick="switchChannel('radio1023')">102.3 FM</button>
   </div>
 
-  <video id="video" width="800" controls>
-    Your browser does not support the video tag.
-  </video>
+  <!-- Players -->
+  <video id="video" controls></video>
+  <audio id="audio" controls style="display: none;"></audio>
 
   <!-- HLS.js -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -45,31 +57,50 @@
       bahraininternational: 'https://5c7b683162943.streamlock.net/live/ngrp:bahraininternational_all/playlist.m3u8',
       bahrainquran: 'https://5c7b683162943.streamlock.net/live/ngrp:bahrainquran_all/playlist.m3u8',
       sportsone: 'https://5c7b683162943.streamlock.net/live/ngrp:sportsone_all/playlist.m3u8',
-      bahrainsportstwo: 'https://5c7b683162943.streamlock.net/live/ngrp:bahrainsportstwo_all/playlist.m3u8'
+      bahrainsportstwo: 'https://5c7b683162943.streamlock.net/live/ngrp:bahrainsportstwo_all/playlist.m3u8',
+      radio965: 'https://5c7b683162943.streamlock.net:443/live/ngrp:radio-96-5_all/playlist.m3u8',
+      radio1023: 'https://5c7b683162943.streamlock.net:443/live/ngrp:radio-102-3_all/playlist.m3u8'
     };
 
     const video = document.getElementById('video');
+    const audio = document.getElementById('audio');
     let hls;
 
     function switchChannel(channelKey) {
       const streamUrl = channels[channelKey];
+      const isRadio = channelKey.startsWith('radio');
+
+      // Hide/show players
+      video.style.display = isRadio ? 'none' : 'block';
+      audio.style.display = isRadio ? 'block' : 'none';
+
+      // Stop previous
+      if (hls) hls.destroy();
 
       if (Hls.isSupported()) {
-        if (hls) {
-          hls.destroy();
-        }
         hls = new Hls();
         hls.loadSource(streamUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => video.play());
+        if (isRadio) {
+          hls.attachMedia(audio);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => audio.play());
+        } else {
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        }
       } else {
-        alert("Your browser does not support HLS playback.");
+        if (isRadio && audio.canPlayType('application/vnd.apple.mpegurl')) {
+          audio.src = streamUrl;
+          audio.addEventListener('loadedmetadata', () => audio.play());
+        } else if (!isRadio && video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.addEventListener('loadedmetadata', () => video.play());
+        } else {
+          alert("Your browser does not support HLS playback.");
+        }
       }
     }
 
+    // Default load
     window.onload = () => switchChannel('bahraintvmain');
   </script>
 
